@@ -9,6 +9,10 @@ app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1)
 CORS(app, resources={r"/scrape": {"origins": os.getenv("ALLOWED_ORIGINS", "*")}})
 
+@app.route('/health', methods=['GET'])
+def health_check():
+    return jsonify({"status": "healthy"}), 200
+
 @app.route('/scrape', methods=['POST'])
 def scrape():
     try:
