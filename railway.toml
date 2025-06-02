@@ -3,8 +3,12 @@ builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
 
 [deploy]
-startCommand = "gunicorn api_server:app"
+startCommand = "gunicorn api_server:app --timeout 300 --workers 2"
 healthcheckPath = "/health"
-healthcheckTimeout = 100
+healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
-restartPolicyMaxRetries = 3 
+restartPolicyMaxRetries = 3
+
+[deploy.resources]
+memory = 2048
+cpu = 1000 

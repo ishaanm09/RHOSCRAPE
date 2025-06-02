@@ -14,7 +14,12 @@ export async function POST(req: NextRequest) {
 
     if (isProd) {
       // In production, forward the request to our Python API
-      const apiUrl = process.env.PYTHON_API_URL || 'https://your-api-url.railway.app';
+      const apiUrl = process.env.PYTHON_API_URL;
+      if (!apiUrl) {
+        throw new Error('PYTHON_API_URL environment variable is not set');
+      }
+      
+      console.log('Calling API URL:', apiUrl);
       const response = await fetch(`${apiUrl}/scrape`, {
         method: 'POST',
         headers: {
@@ -25,7 +30,8 @@ export async function POST(req: NextRequest) {
 
       if (!response.ok) {
         const error = await response.text();
-        throw new Error(error);
+        console.error('API Error:', error);
+        throw new Error(`API Error: ${error}`);
       }
 
       const csvData = await response.text();
