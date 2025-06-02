@@ -1,10 +1,12 @@
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
-import subprocess
 import os
 import tempfile
 from werkzeug.middleware.proxy_fix import ProxyFix
 import logging
+import csv
+from io import StringIO
+from vc_scraper import extract_companies
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -29,45 +31,25 @@ def scrape():
         if not url:
             return jsonify({'error': 'URL is required'}), 400
 
-        # Create a temporary directory for the CSV file
-        with tempfile.TemporaryDirectory() as temp_dir:
-            csv_path = os.path.join(temp_dir, 'portfolio_companies.csv')
-            
-            # Log the current working directory and script location
-            cwd = os.path.dirname(os.path.abspath(__file__))
-            logger.info(f"Current working directory: {cwd}")
-            logger.info(f"Running scraper script for URL: {url}")
-            
-            # Run the scraper script
-            result = subprocess.run(
-                ['python', 'vc_scraper.py', url], 
-                capture_output=True, 
-                text=True,
-                cwd=cwd
-            )
-            
-            logger.info(f"Scraper stdout: {result.stdout}")
-            if result.stderr:
-                logger.error(f"Scraper stderr: {result.stderr}")
-            
-            if result.returncode != 0:
-                error_msg = f"Scraper failed with return code {result.returncode}: {result.stderr}"
-                logger.error(error_msg)
-                return jsonify({'error': error_msg}), 500
+        # Directly call the scraping function
+        companies = extract_companies(url)
+        
+        if not companies:
+            logger.error("No companies were found")
+            return jsonify({'error': 'No data was scraped'}), 500
 
-            # Check if CSV file exists and read it
-            csv_file_path = os.path.join(cwd, 'portfolio_companies.csv')
-            logger.info(f"Looking for CSV file at: {csv_file_path}")
-            
-            if os.path.exists(csv_file_path):
-                with open(csv_file_path, 'r') as f:
-                    csv_data = f.read()
-                logger.info("Successfully read CSV file")
-                return csv_data, 200, {'Content-Type': 'text/csv'}
-            else:
-                error_msg = f"CSV file not found at {csv_file_path}"
-                logger.error(error_msg)
-                return jsonify({'error': error_msg}), 500
+        # Create CSV in memory
+        output = StringIO()
+        writer = csv.writer(output)
+        writer.writerow(["Company", "URL"])  # Header
+        writer.writerows(companies)
+        
+        # Get the CSV data and reset the pointer
+        csv_data = output.getvalue()
+        output.close()
+        
+        logger.info(f"Successfully scraped {len(companies)} companies")
+        return csv_data, 200, {'Content-Type': 'text/csv'}
 
     except Exception as e:
         error_msg = f"Server error: {str(e)}"
