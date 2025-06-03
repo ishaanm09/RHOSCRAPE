@@ -43,7 +43,7 @@ COPY . .
 # 4️⃣  Gunicorn defaults (Railway can override via startCommand)
 #     Same settings you put in railway.toml
 # -------------------------------------------------
-ENV GUNICORN_CMD_ARGS="--timeout 300 --workers 2"
+ENV GUNICORN_CMD_ARGS="--timeout 1000 --workers 2"
 EXPOSE 8000
 
 CMD ["gunicorn", "api_server:app", "-b", "0.0.0.0:8000"]
